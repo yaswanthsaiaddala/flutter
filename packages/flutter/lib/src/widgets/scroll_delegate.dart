@@ -2,6 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'scroll_view.dart';
+/// @docImport 'sliver.dart';
+/// @docImport 'spacer.dart';
+/// @docImport 'two_dimensional_scroll_view.dart';
+/// @docImport 'viewport.dart';
+library;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
@@ -11,10 +18,11 @@ import 'framework.dart';
 import 'selection_container.dart';
 import 'two_dimensional_viewport.dart';
 
-export 'package:flutter/rendering.dart' show
-  SliverGridDelegate,
-  SliverGridDelegateWithFixedCrossAxisCount,
-  SliverGridDelegateWithMaxCrossAxisExtent;
+export 'package:flutter/rendering.dart'
+    show
+        SliverGridDelegate,
+        SliverGridDelegateWithFixedCrossAxisCount,
+        SliverGridDelegateWithMaxCrossAxisExtent;
 
 // Examples can assume:
 // late SliverGridDelegateWithMaxCrossAxisExtent _gridDelegate;
@@ -178,7 +186,7 @@ abstract class SliverChildDelegate {
   ///
   /// Useful for subclasses that which to track which children are included in
   /// the underlying render tree.
-  void didFinishLayout(int firstIndex, int lastIndex) { }
+  void didFinishLayout(int firstIndex, int lastIndex) {}
 
   /// Called whenever a new instance of the child delegate class is
   /// provided to the sliver.
@@ -395,8 +403,8 @@ class SliverChildBuilderDelegate extends SliverChildDelegate {
   /// {@template flutter.widgets.SliverChildBuilderDelegate.addAutomaticKeepAlives}
   /// Whether to wrap each child in an [AutomaticKeepAlive].
   ///
-  /// Typically, children in lazy list are wrapped in [AutomaticKeepAlive]
-  /// widgets so that children can use [KeepAliveNotification]s to preserve
+  /// Typically, lazily laid out children are wrapped in [AutomaticKeepAlive]
+  /// widgets so that the children can use [KeepAliveNotification]s to preserve
   /// their state when they would otherwise be garbage collected off-screen.
   ///
   /// This feature (and [addRepaintBoundaries]) must be disabled if the children
@@ -656,10 +664,10 @@ class SliverChildListDelegate extends SliverChildDelegate {
   /// ```
   final List<Widget> children;
 
-  /// A map to cache key to index lookup for children.
-  ///
-  /// _keyToIndex[null] is used as current index during the lazy loading process
-  /// in [_findChildIndex]. _keyToIndex should never be used for looking up null key.
+  // A map to cache key to index lookup for children.
+  //
+  // _keyToIndex[null] is used as current index during the lazy loading process
+  // in [_findChildIndex]. _keyToIndex should never be used for looking up null key.
   final Map<Key?, int>? _keyToIndex;
 
   bool get _isConstantInstance => _keyToIndex == null;
@@ -670,22 +678,22 @@ class SliverChildListDelegate extends SliverChildDelegate {
     }
     // Lazily fill the [_keyToIndex].
     if (!_keyToIndex!.containsKey(key)) {
-      int index = _keyToIndex![null]!;
+      int index = _keyToIndex[null]!;
       while (index < children.length) {
         final Widget child = children[index];
         if (child.key != null) {
-          _keyToIndex![child.key] = index;
+          _keyToIndex[child.key] = index;
         }
         if (child.key == key) {
           // Record current index for next function call.
-          _keyToIndex![null] = index + 1;
+          _keyToIndex[null] = index + 1;
           return index;
         }
         index += 1;
       }
-      _keyToIndex![null] = index;
+      _keyToIndex[null] = index;
     } else {
-      return _keyToIndex![key];
+      return _keyToIndex[key];
     }
     return null;
   }
@@ -708,7 +716,7 @@ class SliverChildListDelegate extends SliverChildDelegate {
       return null;
     }
     Widget child = children[index];
-    final Key? key = child.key != null? _SaltedValueKey(child.key!) : null;
+    final Key? key = child.key != null ? _SaltedValueKey(child.key!) : null;
     if (addRepaintBoundaries) {
       child = RepaintBoundary(child: child);
     }
@@ -737,9 +745,7 @@ class SliverChildListDelegate extends SliverChildDelegate {
 class _SelectionKeepAlive extends StatefulWidget {
   /// Creates a widget that listens to [KeepAliveNotification]s and maintains a
   /// [KeepAlive] widget appropriately.
-  const _SelectionKeepAlive({
-    required this.child,
-  });
+  const _SelectionKeepAlive({required this.child});
 
   /// The widget below this widget in the tree.
   ///
@@ -750,7 +756,9 @@ class _SelectionKeepAlive extends StatefulWidget {
   State<_SelectionKeepAlive> createState() => _SelectionKeepAliveState();
 }
 
-class _SelectionKeepAliveState extends State<_SelectionKeepAlive> with AutomaticKeepAliveClientMixin implements SelectionRegistrar {
+class _SelectionKeepAliveState extends State<_SelectionKeepAlive>
+    with AutomaticKeepAliveClientMixin
+    implements SelectionRegistrar {
   Set<Selectable>? _selectablesWithSelections;
   Map<Selectable, VoidCallback>? _selectableAttachments;
   SelectionRegistrar? _registrar;
@@ -844,10 +852,7 @@ class _SelectionKeepAliveState extends State<_SelectionKeepAlive> with Automatic
     if (_registrar == null) {
       return widget.child;
     }
-    return SelectionRegistrarScope(
-      registrar: this,
-      child: widget.child,
-    );
+    return SelectionRegistrarScope(registrar: this, child: widget.child);
   }
 }
 
@@ -863,7 +868,6 @@ Widget _createErrorWidget(Object exception, StackTrace stackTrace) {
   return ErrorWidget.builder(details);
 }
 
-// TODO(Piinks): Come back and add keep alive support, https://github.com/flutter/flutter/issues/126297
 /// A delegate that supplies children for scrolling in two dimensions.
 ///
 /// A [TwoDimensionalScrollView] lazily constructs its box children to avoid
@@ -886,6 +890,13 @@ Widget _createErrorWidget(Object exception, StackTrace stackTrace) {
 ///   * [TwoDimensionalChildListDelegate], an concrete subclass of this that
 ///     uses a two dimensional array to layout children.
 abstract class TwoDimensionalChildDelegate extends ChangeNotifier {
+  /// Creates a delegate that supplies children for scrolling in two dimensions.
+  TwoDimensionalChildDelegate() {
+    if (kFlutterMemoryAllocationsEnabled) {
+      ChangeNotifier.maybeDispatchObjectCreation(this);
+    }
+  }
+
   /// Returns the child with the given [ChildVicinity], which is described in
   /// terms of x and y indices.
   ///
@@ -896,7 +907,7 @@ abstract class TwoDimensionalChildDelegate extends ChangeNotifier {
   /// widgets have changed, a new delegate must be provided, and the new
   /// delegate's [shouldRebuild] method must return true. Alternatively,
   /// calling [notifyListeners] will allow the same delegate to be used.
-  Widget? build(BuildContext context, ChildVicinity vicinity);
+  Widget? build(BuildContext context, covariant ChildVicinity vicinity);
 
   /// Called whenever a new instance of the child delegate class is
   /// provided.
@@ -929,12 +940,13 @@ class TwoDimensionalChildBuilderDelegate extends TwoDimensionalChildDelegate {
   /// Creates a delegate that supplies children for a [TwoDimensionalScrollView]
   /// using the given builder callback.
   TwoDimensionalChildBuilderDelegate({
-    this.addRepaintBoundaries = true,
     required this.builder,
     int? maxXIndex,
     int? maxYIndex,
-  }) : assert(maxYIndex == null || maxYIndex >= 0),
-       assert(maxXIndex == null || maxXIndex >= 0),
+    this.addRepaintBoundaries = true,
+    this.addAutomaticKeepAlives = true,
+  }) : assert(maxYIndex == null || maxYIndex >= -1),
+       assert(maxXIndex == null || maxXIndex >= -1),
        _maxYIndex = maxYIndex,
        _maxXIndex = maxXIndex;
 
@@ -976,7 +988,9 @@ class TwoDimensionalChildBuilderDelegate extends TwoDimensionalChildDelegate {
   /// [TwoDimensionalViewport] subclass to learn how this value is applied in
   /// the specific use case.
   ///
-  /// If not null, the value must be non-negative.
+  /// If not null, the value must be greater than or equal to -1, where -1
+  /// indicates there will be no children at all provided to the
+  /// [TwoDimensionalViewport].
   ///
   /// If the value changes, the delegate will call [notifyListeners]. This
   /// informs the [RenderTwoDimensionalViewport] that any cached information
@@ -997,7 +1011,7 @@ class TwoDimensionalChildBuilderDelegate extends TwoDimensionalChildDelegate {
     if (value == maxXIndex) {
       return;
     }
-    assert(value == null || value >= 0);
+    assert(value == null || value >= -1);
     _maxXIndex = value;
     notifyListeners();
   }
@@ -1020,13 +1034,16 @@ class TwoDimensionalChildBuilderDelegate extends TwoDimensionalChildDelegate {
     if (maxYIndex == value) {
       return;
     }
-    assert(value == null || value >= 0);
+    assert(value == null || value >= -1);
     _maxYIndex = value;
     notifyListeners();
   }
 
   /// {@macro flutter.widgets.SliverChildBuilderDelegate.addRepaintBoundaries}
   final bool addRepaintBoundaries;
+
+  /// {@macro flutter.widgets.SliverChildBuilderDelegate.addAutomaticKeepAlives}
+  final bool addAutomaticKeepAlives;
 
   @override
   Widget? build(BuildContext context, ChildVicinity vicinity) {
@@ -1049,6 +1066,9 @@ class TwoDimensionalChildBuilderDelegate extends TwoDimensionalChildDelegate {
     }
     if (addRepaintBoundaries) {
       child = RepaintBoundary(child: child);
+    }
+    if (addAutomaticKeepAlives) {
+      child = AutomaticKeepAlive(child: _SelectionKeepAlive(child: child));
     }
     return child;
   }
@@ -1095,6 +1115,7 @@ class TwoDimensionalChildListDelegate extends TwoDimensionalChildDelegate {
   /// null.
   TwoDimensionalChildListDelegate({
     this.addRepaintBoundaries = true,
+    this.addAutomaticKeepAlives = true,
     required this.children,
   });
 
@@ -1114,6 +1135,9 @@ class TwoDimensionalChildListDelegate extends TwoDimensionalChildDelegate {
   /// {@macro flutter.widgets.SliverChildBuilderDelegate.addRepaintBoundaries}
   final bool addRepaintBoundaries;
 
+  /// {@macro flutter.widgets.SliverChildBuilderDelegate.addAutomaticKeepAlives}
+  final bool addAutomaticKeepAlives;
+
   @override
   Widget? build(BuildContext context, ChildVicinity vicinity) {
     // If we have exceeded explicit upper bounds, return null.
@@ -1128,7 +1152,9 @@ class TwoDimensionalChildListDelegate extends TwoDimensionalChildDelegate {
     if (addRepaintBoundaries) {
       child = RepaintBoundary(child: child);
     }
-
+    if (addAutomaticKeepAlives) {
+      child = AutomaticKeepAlive(child: _SelectionKeepAlive(child: child));
+    }
     return child;
   }
 

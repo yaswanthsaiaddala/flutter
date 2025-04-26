@@ -6,8 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-/// Flutter code sample for [SearchAnchor] that demonstrates fetching the
-/// suggestions asynchronously and debouncing the network calls.
+/// Flutter code sample for [SearchAnchor].
 
 const Duration fakeAPIDuration = Duration(seconds: 1);
 const Duration debounceDuration = Duration(milliseconds: 500);
@@ -21,12 +20,8 @@ class SearchAnchorAsyncExampleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('SearchAnchor - async and debouncing'),
-        ),
-        body: const Center(
-          child: _AsyncSearchAnchor(),
-        ),
+        appBar: AppBar(title: const Text('SearchAnchor - async and debouncing')),
+        body: const Center(child: _AsyncSearchAnchor()),
       ),
     );
   }
@@ -36,10 +31,10 @@ class _AsyncSearchAnchor extends StatefulWidget {
   const _AsyncSearchAnchor();
 
   @override
-  State<_AsyncSearchAnchor > createState() => _AsyncSearchAnchorState();
+  State<_AsyncSearchAnchor> createState() => _AsyncSearchAnchorState();
 }
 
-class _AsyncSearchAnchorState extends State<_AsyncSearchAnchor > {
+class _AsyncSearchAnchorState extends State<_AsyncSearchAnchor> {
   // The query currently being searched for. If null, there is no pending
   // request.
   String? _currentQuery;
@@ -106,11 +101,7 @@ class _AsyncSearchAnchorState extends State<_AsyncSearchAnchor > {
 
 // Mimics a remote API.
 class _FakeAPI {
-  static const List<String> _kOptions = <String>[
-    'aardvark',
-    'bobcat',
-    'chameleon',
-  ];
+  static const List<String> _kOptions = <String>['aardvark', 'bobcat', 'chameleon'];
 
   // Searches the options, but injects a fake "network" delay.
   static Future<Iterable<String>> search(String query) async {
@@ -140,11 +131,8 @@ _Debounceable<S, T> _debounce<S, T>(_Debounceable<S?, T> function) {
     debounceTimer = _DebounceTimer();
     try {
       await debounceTimer!.future;
-    } catch (error) {
-      if (error is _CancelException) {
-        return null;
-      }
-      rethrow;
+    } on _CancelException {
+      return null;
     }
     return function(parameter);
   };

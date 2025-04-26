@@ -4,9 +4,12 @@
 
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:leak_tracker_flutter_testing/leak_tracker_flutter_testing.dart';
 
 void main() {
-  testWidgets('Listeners are called when semantics are turned on with ensureSemantics', (WidgetTester tester) async {
+  testWidgets('Listeners are called when semantics are turned on with ensureSemantics', (
+    WidgetTester tester,
+  ) async {
     expect(SemanticsBinding.instance.semanticsEnabled, isFalse);
 
     final List<bool> status = <bool>[];
@@ -43,7 +46,9 @@ void main() {
     expect(SemanticsBinding.instance.semanticsEnabled, isFalse);
   }, semanticsEnabled: false);
 
-  testWidgets('Listeners are called when semantics are turned on by platform', (WidgetTester tester) async {
+  testWidgets('Listeners are called when semantics are turned on by platform', (
+    WidgetTester tester,
+  ) async {
     expect(SemanticsBinding.instance.semanticsEnabled, isFalse);
 
     final List<bool> status = <bool>[];
@@ -69,7 +74,9 @@ void main() {
     expect(SemanticsBinding.instance.semanticsEnabled, isFalse);
   }, semanticsEnabled: false);
 
-  testWidgets('SemanticsBinding.ensureSemantics triggers creation of semantics owner.', (WidgetTester tester) async {
+  testWidgets('SemanticsBinding.ensureSemantics triggers creation of semantics owner.', (
+    WidgetTester tester,
+  ) async {
     expect(SemanticsBinding.instance.semanticsEnabled, isFalse);
     expect(tester.binding.pipelineOwner.semanticsOwner, isNull);
 
@@ -81,4 +88,14 @@ void main() {
     expect(SemanticsBinding.instance.semanticsEnabled, isFalse);
     expect(tester.binding.pipelineOwner.semanticsOwner, isNull);
   }, semanticsEnabled: false);
+
+  test('SemanticsHandle dispatches memory events', () async {
+    await expectLater(
+      await memoryEvents(
+        () => SemanticsBinding.instance.ensureSemantics().dispose(),
+        SemanticsHandle,
+      ),
+      areCreateAndDispose,
+    );
+  });
 }

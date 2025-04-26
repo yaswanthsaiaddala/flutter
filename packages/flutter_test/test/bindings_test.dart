@@ -12,8 +12,8 @@ library;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -23,6 +23,19 @@ void main() {
     test('is initialized with top-level window if one is not provided', () {
       // The code below will throw without the default.
       TestViewConfiguration(size: const Size(1280.0, 800.0));
+    });
+
+    test('toMatrix handles zero size', () {
+      // The code below will throw without the default.
+      final Matrix4 matrix = TestViewConfiguration(size: Size.zero).toMatrix();
+      expect(matrix.storage.every((double x) => x.isFinite), isTrue);
+    });
+
+    test('sets the DPR to match the window', () {
+      final TestViewConfiguration configuration = TestViewConfiguration(
+        size: const Size(1280.0, 800.0),
+      );
+      expect(configuration.devicePixelRatio, binding.window.devicePixelRatio);
     });
   });
 
@@ -57,6 +70,18 @@ void main() {
     order += 1;
   });
 
+  testWidgets('timeStamp should be accurate to microsecond precision', (WidgetTester tester) async {
+    final WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+    await tester.pumpWidget(const CircularProgressIndicator());
+
+    final Duration timeStampBefore = widgetsBinding.currentSystemFrameTimeStamp;
+    await tester.pump(const Duration(microseconds: 12345));
+    final Duration timeStampAfter = widgetsBinding.currentSystemFrameTimeStamp;
+
+    expect(timeStampAfter - timeStampBefore, const Duration(microseconds: 12345));
+  });
+
   group('elapseBlocking', () {
     testWidgets('timer is not called', (WidgetTester tester) async {
       bool timerCalled = false;
@@ -71,27 +96,33 @@ void main() {
     testWidgets('can use to simulate slow build', (WidgetTester tester) async {
       final DateTime beforeTime = binding.clock.now();
 
-      await tester.pumpWidget(Builder(builder: (_) {
-        bool timerCalled = false;
-        Timer.run(() => timerCalled = true);
+      await tester.pumpWidget(
+        Builder(
+          builder: (_) {
+            bool timerCalled = false;
+            Timer.run(() => timerCalled = true);
 
-        binding.elapseBlocking(const Duration(seconds: 1));
+            binding.elapseBlocking(const Duration(seconds: 1));
 
-        // if we use `delayed` instead of `elapseBlocking`, such as
-        // binding.delayed(const Duration(seconds: 1));
-        // the timer will be called here. Surely, that violates how
-        // a flutter widget build works
-        expect(timerCalled, false);
+            // if we use `delayed` instead of `elapseBlocking`, such as
+            // binding.delayed(const Duration(seconds: 1));
+            // the timer will be called here. Surely, that violates how
+            // a flutter widget build works
+            expect(timerCalled, false);
 
-        return Container();
-      }));
+            return Container();
+          },
+        ),
+      );
 
       expect(binding.clock.now(), beforeTime.add(const Duration(seconds: 1)));
       binding.idle();
     });
   });
 
-  testWidgets('Assets in the tester can be loaded without turning event loop', (WidgetTester tester) async {
+  testWidgets('Assets in the tester can be loaded without turning event loop', (
+    WidgetTester tester,
+  ) async {
     bool responded = false;
     // The particular asset does not matter, as long as it exists.
     rootBundle.load('AssetManifest.json').then((ByteData data) {

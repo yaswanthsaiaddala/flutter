@@ -2,6 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'button_style.dart';
+/// @docImport 'elevated_button.dart';
+/// @docImport 'outlined_button.dart';
+/// @docImport 'text_button.dart';
+/// @docImport 'theme.dart';
+/// @docImport 'theme_data.dart';
+library;
+
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -27,12 +35,12 @@ import 'material.dart';
 /// The [controller] argument is typically obtained via
 /// `Material.of(context)`.
 ///
-/// If [containedInkWell] is true, then the effect will be sized to fit
+/// If `containedInkWell` is true, then the effect will be sized to fit
 /// the well rectangle, and clipped to it when drawn. The well
-/// rectangle is the box returned by [rectCallback], if provided, or
+/// rectangle is the box returned by `rectCallback`, if provided, or
 /// otherwise is the bounds of the [referenceBox].
 ///
-/// If [containedInkWell] is false, then [rectCallback] should be null.
+/// If `containedInkWell` is false, then `rectCallback` should be null.
 /// The ink ripple is clipped only to the edges of the [Material].
 /// This is the default.
 ///
@@ -112,38 +120,25 @@ class InkSparkle extends InteractiveInkFeature {
        _position = position,
        _borderRadius = borderRadius ?? BorderRadius.zero,
        _textDirection = textDirection,
-       _targetRadius = (radius ?? _getTargetRadius(
-                                    referenceBox,
-                                    containedInkWell,
-                                    rectCallback,
-                                    position,
-                                  )
-                       ) * _targetRadiusMultiplier,
+       _targetRadius =
+           (radius ?? _getTargetRadius(referenceBox, containedInkWell, rectCallback, position)) *
+           _targetRadiusMultiplier,
        _clipCallback = _getClipCallback(referenceBox, containedInkWell, rectCallback) {
     // InkSparkle will not be painted until the async compilation completes.
     _InkSparkleFactory.initializeShader();
     controller.addInkFeature(this);
 
     // Immediately begin animating the ink.
-    _animationController = AnimationController(
-      duration: _animationDuration,
-      vsync: controller.vsync,
-    )..addListener(controller.markNeedsPaint)
-     ..addStatusListener(_handleStatusChanged)
-     ..forward();
+    _animationController =
+        AnimationController(duration: _animationDuration, vsync: controller.vsync)
+          ..addListener(controller.markNeedsPaint)
+          ..addStatusListener(_handleStatusChanged)
+          ..forward();
 
-    _radiusScale = TweenSequence<double>(
-      <TweenSequenceItem<double>>[
-        TweenSequenceItem<double>(
-          tween: CurveTween(curve: Curves.fastOutSlowIn),
-          weight: 75,
-        ),
-        TweenSequenceItem<double>(
-          tween: ConstantTween<double>(1.0),
-          weight: 25,
-        ),
-      ],
-    ).animate(_animationController);
+    _radiusScale = TweenSequence<double>(<TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(tween: CurveTween(curve: Curves.fastOutSlowIn), weight: 75),
+      TweenSequenceItem<double>(tween: ConstantTween<double>(1.0), weight: 25),
+    ]).animate(_animationController);
 
     // Functionally equivalent to Android 12's SkSL:
     //`return mix(u_touch, u_resolution, saturate(in_radius_scale * 2.0))`
@@ -151,61 +146,38 @@ class InkSparkle extends InteractiveInkFeature {
       begin: Vector2.array(<double>[_position.dx, _position.dy]),
       end: Vector2.array(<double>[referenceBox.size.width / 2, referenceBox.size.height / 2]),
     );
-    final Animation<double> centerProgress = TweenSequence<double>(
-      <TweenSequenceItem<double>>[
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          weight: 50,
-        ),
-        TweenSequenceItem<double>(
-          tween: ConstantTween<double>(1.0),
-          weight: 50,
-        ),
-      ],
-    ).animate(_radiusScale);
+    final Animation<double> centerProgress = TweenSequence<double>(<TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 50),
+      TweenSequenceItem<double>(tween: ConstantTween<double>(1.0), weight: 50),
+    ]).animate(_radiusScale);
     _center = centerTween.animate(centerProgress);
 
-    _alpha = TweenSequence<double>(
-      <TweenSequenceItem<double>>[
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          weight: 13,
-        ),
-        TweenSequenceItem<double>(
-          tween: ConstantTween<double>(1.0),
-          weight: 27,
-        ),
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 1.0, end: 0.0),
-          weight: 60,
-        ),
-      ],
-    ).animate(_animationController);
+    _alpha = TweenSequence<double>(<TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 13),
+      TweenSequenceItem<double>(tween: ConstantTween<double>(1.0), weight: 27),
+      TweenSequenceItem<double>(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 60),
+    ]).animate(_animationController);
 
-    _sparkleAlpha = TweenSequence<double>(
-      <TweenSequenceItem<double>>[
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          weight: 13,
-        ),
-        TweenSequenceItem<double>(
-          tween: ConstantTween<double>(1.0),
-          weight: 27,
-        ),
-        TweenSequenceItem<double>(
-          tween: Tween<double>(begin: 1.0, end: 0.0),
-          weight: 50,
-        ),
-      ],
-    ).animate(_animationController);
+    _sparkleAlpha = TweenSequence<double>(<TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(tween: Tween<double>(begin: 0.0, end: 1.0), weight: 13),
+      TweenSequenceItem<double>(tween: ConstantTween<double>(1.0), weight: 27),
+      TweenSequenceItem<double>(tween: Tween<double>(begin: 1.0, end: 0.0), weight: 50),
+    ]).animate(_animationController);
 
     // Creates an element of randomness so that ink emanating from the same
     // pixel have slightly different rings and sparkles.
+    assert(() {
+      // In tests, randomness can cause flakes. So if a seed has not
+      // already been specified (i.e. for the purpose of the test), set it to
+      // the constant turbulence seed.
+      turbulenceSeed ??= _InkSparkleFactory.constantSeed;
+      return true;
+    }());
     _turbulenceSeed = turbulenceSeed ?? math.Random().nextDouble() * 1000.0;
   }
 
   void _handleStatusChanged(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
+    if (status.isCompleted) {
       dispose();
     }
   }
@@ -242,16 +214,17 @@ class InkSparkle extends InteractiveInkFeature {
   /// Used to specify this type of ink splash for an [InkWell], [InkResponse],
   /// material [Theme], or [ButtonStyle].
   ///
-  /// Since no [turbulenceSeed] is passed, the effect will be random for
+  /// Since no `turbulenceSeed` is passed, the effect will be random for
   /// subsequent presses in the same position.
   static const InteractiveInkFeatureFactory splashFactory = _InkSparkleFactory();
 
   /// Used to specify this type of ink splash for an [InkWell], [InkResponse],
   /// material [Theme], or [ButtonStyle].
   ///
-  /// Since a [turbulenceSeed] is passed, the effect will not be random for
+  /// Since a `turbulenceSeed` is passed, the effect will not be random for
   /// subsequent presses in the same position. This can be used for testing.
-  static const InteractiveInkFeatureFactory constantTurbulenceSeedSplashFactory = _InkSparkleFactory.constantTurbulenceSeed();
+  static const InteractiveInkFeatureFactory constantTurbulenceSeedSplashFactory =
+      _InkSparkleFactory.constantTurbulenceSeed();
 
   @override
   void dispose() {
@@ -285,7 +258,7 @@ class InkSparkle extends InteractiveInkFeature {
     if (_clipCallback != null) {
       _clipCanvas(
         canvas: canvas,
-        clipCallback: _clipCallback!,
+        clipCallback: _clipCallback,
         textDirection: _textDirection,
         customBorder: customBorder,
         borderRadius: _borderRadius,
@@ -296,7 +269,7 @@ class InkSparkle extends InteractiveInkFeature {
 
     final Paint paint = Paint()..shader = _fragmentShader;
     if (_clipCallback != null) {
-      canvas.drawRect(_clipCallback!(), paint);
+      canvas.drawRect(_clipCallback(), paint);
     } else {
       canvas.drawPaint(paint);
     }
@@ -306,12 +279,11 @@ class InkSparkle extends InteractiveInkFeature {
   double get _width => referenceBox.size.width;
   double get _height => referenceBox.size.height;
 
-
   /// All double values for uniforms come from the Android 12 ripple
   /// implementation from the following files:
-  /// - https://cs.android.com/android/platform/superproject/+/master:frameworks/base/graphics/java/android/graphics/drawable/RippleShader.java
-  /// - https://cs.android.com/android/platform/superproject/+/master:frameworks/base/graphics/java/android/graphics/drawable/RippleDrawable.java
-  /// - https://cs.android.com/android/platform/superproject/+/master:frameworks/base/graphics/java/android/graphics/drawable/RippleAnimationSession.java
+  /// - https://cs.android.com/android/platform/superproject/+/main:frameworks/base/graphics/java/android/graphics/drawable/RippleShader.java
+  /// - https://cs.android.com/android/platform/superproject/+/main:frameworks/base/graphics/java/android/graphics/drawable/RippleDrawable.java
+  /// - https://cs.android.com/android/platform/superproject/+/main:frameworks/base/graphics/java/android/graphics/drawable/RippleAnimationSession.java
   void _updateFragmentShader() {
     const double turbulenceScale = 1.5;
     final double turbulencePhase = _turbulenceSeed + _radiusScale.value;
@@ -326,50 +298,60 @@ class InkSparkle extends InteractiveInkFeature {
       ..setFloat(1, _color.green / 255.0)
       ..setFloat(2, _color.blue / 255.0)
       ..setFloat(3, _color.alpha / 255.0)
-      // uAlpha
+      // Composite 1 (u_alpha, u_sparkle_alpha, u_blur, u_radius_scale)
       ..setFloat(4, _alpha.value)
-      // uSparkleColor
-      ..setFloat(5, 1.0)
+      ..setFloat(5, _sparkleAlpha.value)
       ..setFloat(6, 1.0)
-      ..setFloat(7, 1.0)
-      ..setFloat(8, 1.0)
-      // uSparkleAlpha
-      ..setFloat(9, _sparkleAlpha.value)
-      // uBlur
-      ..setFloat(10, 1.0)
+      ..setFloat(7, _radiusScale.value)
       // uCenter
-      ..setFloat(11, _center.value.x)
-      ..setFloat(12, _center.value.y)
-      // uRadiusScale
-      ..setFloat(13, _radiusScale.value)
+      ..setFloat(8, _center.value.x)
+      ..setFloat(9, _center.value.y)
       // uMaxRadius
-      ..setFloat(14, _targetRadius)
+      ..setFloat(10, _targetRadius)
       // uResolutionScale
-      ..setFloat(15, 1.0 / _width)
-      ..setFloat(16, 1.0 / _height)
+      ..setFloat(11, 1.0 / _width)
+      ..setFloat(12, 1.0 / _height)
       // uNoiseScale
-      ..setFloat(17, _noiseDensity / _width)
-      ..setFloat(18, _noiseDensity / _height)
+      ..setFloat(13, _noiseDensity / _width)
+      ..setFloat(14, _noiseDensity / _height)
       // uNoisePhase
-      ..setFloat(19, noisePhase / 1000.0)
+      ..setFloat(15, noisePhase / 1000.0)
       // uCircle1
-      ..setFloat(20, turbulenceScale * 0.5 + (turbulencePhase * 0.01 * math.cos(turbulenceScale * 0.55)))
-      ..setFloat(21, turbulenceScale * 0.5 + (turbulencePhase * 0.01 * math.sin(turbulenceScale * 0.55)))
+      ..setFloat(
+        16,
+        turbulenceScale * 0.5 + (turbulencePhase * 0.01 * math.cos(turbulenceScale * 0.55)),
+      )
+      ..setFloat(
+        17,
+        turbulenceScale * 0.5 + (turbulencePhase * 0.01 * math.sin(turbulenceScale * 0.55)),
+      )
       // uCircle2
-      ..setFloat(22, turbulenceScale * 0.2 + (turbulencePhase * -0.0066 * math.cos(turbulenceScale * 0.45)))
-      ..setFloat(23, turbulenceScale * 0.2 + (turbulencePhase * -0.0066 * math.sin(turbulenceScale * 0.45)))
+      ..setFloat(
+        18,
+        turbulenceScale * 0.2 + (turbulencePhase * -0.0066 * math.cos(turbulenceScale * 0.45)),
+      )
+      ..setFloat(
+        19,
+        turbulenceScale * 0.2 + (turbulencePhase * -0.0066 * math.sin(turbulenceScale * 0.45)),
+      )
       // uCircle3
-      ..setFloat(24, turbulenceScale + (turbulencePhase * -0.0066 * math.cos(turbulenceScale * 0.35)))
-      ..setFloat(25, turbulenceScale + (turbulencePhase * -0.0066 * math.sin(turbulenceScale * 0.35)))
+      ..setFloat(
+        20,
+        turbulenceScale + (turbulencePhase * -0.0066 * math.cos(turbulenceScale * 0.35)),
+      )
+      ..setFloat(
+        21,
+        turbulenceScale + (turbulencePhase * -0.0066 * math.sin(turbulenceScale * 0.35)),
+      )
       // uRotation1
-      ..setFloat(26, math.cos(rotation1))
-      ..setFloat(27, math.sin(rotation1))
+      ..setFloat(22, math.cos(rotation1))
+      ..setFloat(23, math.sin(rotation1))
       // uRotation2
-      ..setFloat(28, math.cos(rotation2))
-      ..setFloat(29, math.sin(rotation2))
+      ..setFloat(24, math.cos(rotation2))
+      ..setFloat(25, math.sin(rotation2))
       // uRotation3
-      ..setFloat(30, math.cos(rotation3))
-      ..setFloat(31, math.sin(rotation3));
+      ..setFloat(26, math.cos(rotation3))
+      ..setFloat(27, math.sin(rotation3));
   }
 
   /// Transforms the canvas for an ink feature to be painted on the [canvas].
@@ -382,10 +364,7 @@ class InkSparkle extends InteractiveInkFeature {
   /// the ink feature is to be painted.
   ///
   /// For examples on how the function is used, see [InkSparkle] and [paintInkCircle].
-  void _transformCanvas({
-    required Canvas canvas,
-    required Matrix4 transform,
-  }) {
+  void _transformCanvas({required Canvas canvas, required Matrix4 transform}) {
     final Offset? originOffset = MatrixUtils.getAsTranslation(transform);
     if (originOffset == null) {
       canvas.transform(transform.storage);
@@ -418,16 +397,17 @@ class InkSparkle extends InteractiveInkFeature {
   }) {
     final Rect rect = clipCallback();
     if (customBorder != null) {
-      canvas.clipPath(
-          customBorder.getOuterPath(rect, textDirection: textDirection));
+      canvas.clipPath(customBorder.getOuterPath(rect, textDirection: textDirection));
     } else if (borderRadius != BorderRadius.zero) {
-      canvas.clipRRect(RRect.fromRectAndCorners(
-        rect,
-        topLeft: borderRadius.topLeft,
-        topRight: borderRadius.topRight,
-        bottomLeft: borderRadius.bottomLeft,
-        bottomRight: borderRadius.bottomRight,
-      ));
+      canvas.clipRRect(
+        RRect.fromRectAndCorners(
+          rect,
+          topLeft: borderRadius.topLeft,
+          topRight: borderRadius.topRight,
+          bottomLeft: borderRadius.bottomLeft,
+          bottomRight: borderRadius.bottomRight,
+        ),
+      );
     } else {
       canvas.clipRect(rect);
     }
@@ -437,15 +417,16 @@ class InkSparkle extends InteractiveInkFeature {
 class _InkSparkleFactory extends InteractiveInkFeatureFactory {
   const _InkSparkleFactory() : turbulenceSeed = null;
 
-  const _InkSparkleFactory.constantTurbulenceSeed() : turbulenceSeed = 1337.0;
+  const _InkSparkleFactory.constantTurbulenceSeed()
+    : turbulenceSeed = _InkSparkleFactory.constantSeed;
+
+  static const double constantSeed = 1337.0;
 
   static void initializeShader() {
     if (!_initCalled) {
-      ui.FragmentProgram.fromAsset('shaders/ink_sparkle.frag').then(
-        (ui.FragmentProgram program) {
-          _program = program;
-        },
-      );
+      ui.FragmentProgram.fromAsset('shaders/ink_sparkle.frag').then((ui.FragmentProgram program) {
+        _program = program;
+      });
       _initCalled = true;
     }
   }

@@ -5,7 +5,10 @@
 import 'template.dart';
 
 class MenuTemplate extends TokenTemplate {
-  const MenuTemplate(super.blockName, super.fileName, super.tokens, {
+  const MenuTemplate(
+    super.blockName,
+    super.fileName,
+    super.tokens, {
     super.colorSchemePrefix = '_colors.',
   });
 
@@ -38,7 +41,7 @@ class _MenuBarDefaultsM3 extends MenuStyle {
 
   @override
   MaterialStateProperty<Color?>? get surfaceTintColor {
-    return MaterialStatePropertyAll<Color?>(${componentColor('md.comp.menu.container.surface-tint-layer')});
+    return const MaterialStatePropertyAll<Color?>(${colorOrTransparent('md.comp.menu.container.surface-tint-layer')});
   }
 
   @override
@@ -65,6 +68,7 @@ class _MenuButtonDefaultsM3 extends ButtonStyle {
   final BuildContext context;
 
   late final ColorScheme _colors = Theme.of(context).colorScheme;
+  late final TextTheme _textTheme = Theme.of(context).textTheme;
 
   @override
   MaterialStateProperty<Color?>? get backgroundColor {
@@ -119,6 +123,11 @@ class _MenuButtonDefaultsM3 extends ButtonStyle {
   }
 
   // No default fixedSize
+
+  @override
+  MaterialStateProperty<double>? get iconSize {
+    return const MaterialStatePropertyAll<double>(${getToken("md.comp.list.list-item.leading-icon.size")});
+  }
 
   @override
   MaterialStateProperty<Size>? get maximumSize {
@@ -180,7 +189,9 @@ class _MenuButtonDefaultsM3 extends ButtonStyle {
 
   @override
   MaterialStateProperty<TextStyle?> get textStyle {
-    return MaterialStatePropertyAll<TextStyle?>(${textStyle('md.comp.list.list-item.label-text')});
+    // TODO(tahatesser): This is taken from https://m3.material.io/components/menus/specs
+    // Update this when the token is available.
+    return MaterialStatePropertyAll<TextStyle?>(_textTheme.labelLarge);
   }
 
   @override
@@ -197,6 +208,11 @@ class _MenuButtonDefaultsM3 extends ButtonStyle {
     if (visualDensity.horizontal > 0) {
       visualDensity = VisualDensity(vertical: visualDensity.vertical);
     }
+    // Since the threshold paddings used below are empirical values determined
+    // at a font size of 14.0, 14.0 is used as the base value for scaling the
+    // padding.
+    final double fontSize = Theme.of(context).textTheme.labelLarge?.fontSize ?? 14.0;
+    final double fontSizeRatio = MediaQuery.textScalerOf(context).scale(fontSize) / 14.0;
     return ButtonStyleButton.scaledPadding(
       EdgeInsets.symmetric(horizontal: math.max(
         _kMenuViewPadding,
@@ -207,7 +223,7 @@ class _MenuButtonDefaultsM3 extends ButtonStyle {
         8 + visualDensity.baseSizeAdjustment.dx,
       )),
       const EdgeInsets.symmetric(horizontal: _kMenuViewPadding),
-      MediaQuery.maybeTextScaleFactorOf(context) ?? 1,
+      fontSizeRatio,
     );
   }
 }
@@ -234,7 +250,7 @@ class _MenuDefaultsM3 extends MenuStyle {
 
   @override
   MaterialStateProperty<Color?>? get surfaceTintColor {
-    return MaterialStatePropertyAll<Color?>(${componentColor('md.comp.menu.container.surface-tint-layer')});
+    return ${componentColor('md.comp.menu.container.surface-tint-layer') == 'null' ? 'const MaterialStatePropertyAll<Color?>(Colors.transparent)' : 'MaterialStatePropertyAll<Color?>(${componentColor('md.comp.menu.container.surface-tint-layer')})'};
   }
 
   @override

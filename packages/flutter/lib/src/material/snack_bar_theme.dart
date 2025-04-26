@@ -2,6 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'bottom_navigation_bar.dart';
+/// @docImport 'color_scheme.dart';
+/// @docImport 'colors.dart';
+/// @docImport 'floating_action_button.dart';
+/// @docImport 'navigation_bar.dart';
+/// @docImport 'scaffold.dart';
+/// @docImport 'snack_bar.dart';
+library;
+
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/foundation.dart';
@@ -17,14 +26,17 @@ enum SnackBarBehavior {
   /// Fixes the [SnackBar] at the bottom of the [Scaffold].
   ///
   /// The exception is that the [SnackBar] will be shown above a
-  /// [BottomNavigationBar]. Additionally, the [SnackBar] will cause other
-  /// non-fixed widgets inside [Scaffold] to be pushed above (for example, the
-  /// [FloatingActionButton]).
+  /// [BottomNavigationBar] or a [NavigationBar]. Additionally, the [SnackBar]
+  /// will cause other non-fixed widgets inside [Scaffold] to be pushed above
+  /// (for example, the [FloatingActionButton]).
   fixed,
 
   /// This behavior will cause [SnackBar] to be shown above other widgets in the
-  /// [Scaffold]. This includes being displayed above a [BottomNavigationBar]
-  /// and a [FloatingActionButton].
+  /// [Scaffold]. This includes being displayed above a [BottomNavigationBar] or
+  /// a [NavigationBar], and a [FloatingActionButton] when its location is on the
+  /// bottom. When the floating action button location is on the top, this behavior
+  /// will cause the [SnackBar] to be shown above other widgets in the [Scaffold]
+  /// except the floating action button.
   ///
   /// See <https://material.io/design/components/snackbars.html> for more details.
   floating,
@@ -49,7 +61,6 @@ enum SnackBarBehavior {
 ///    application.
 @immutable
 class SnackBarThemeData with Diagnosticable {
-
   /// Creates a theme that can be used for [ThemeData.snackBarTheme].
   ///
   /// The [elevation] must be null or non-negative.
@@ -67,15 +78,23 @@ class SnackBarThemeData with Diagnosticable {
     this.closeIconColor,
     this.actionOverflowThreshold,
     this.actionBackgroundColor,
-    this.disabledActionBackgroundColor
-  })  : assert(elevation == null || elevation >= 0.0),
-        assert(width == null || identical(behavior, SnackBarBehavior.floating),
-          'Width can only be set if behaviour is SnackBarBehavior.floating'),
-        assert(actionOverflowThreshold == null || (actionOverflowThreshold >= 0 && actionOverflowThreshold <= 1),
-          'Action overflow threshold must be between 0 and 1 inclusive'),
-        assert(actionBackgroundColor is! MaterialStateColor || disabledActionBackgroundColor == null,
-          'disabledBackgroundColor must not be provided when background color is '
-          'a MaterialStateColor');
+    this.disabledActionBackgroundColor,
+    this.dismissDirection,
+  }) : assert(elevation == null || elevation >= 0.0),
+       assert(
+         width == null || identical(behavior, SnackBarBehavior.floating),
+         'Width can only be set if behaviour is SnackBarBehavior.floating',
+       ),
+       assert(
+         actionOverflowThreshold == null ||
+             (actionOverflowThreshold >= 0 && actionOverflowThreshold <= 1),
+         'Action overflow threshold must be between 0 and 1 inclusive',
+       ),
+       assert(
+         actionBackgroundColor is! MaterialStateColor || disabledActionBackgroundColor == null,
+         'disabledBackgroundColor must not be provided when background color is '
+         'a MaterialStateColor',
+       );
 
   /// Overrides the default value for [SnackBar.backgroundColor].
   ///
@@ -85,7 +104,7 @@ class SnackBarThemeData with Diagnosticable {
   /// Overrides the default value for [SnackBarAction.textColor].
   ///
   /// If null, [SnackBarAction] defaults to [ColorScheme.secondary] of
-  /// [ThemeData.colorScheme] .
+  /// [ThemeData.colorScheme].
   final Color? actionTextColor;
 
   /// Overrides the default value for [SnackBarAction.disabledTextColor].
@@ -145,15 +164,21 @@ class SnackBarThemeData with Diagnosticable {
   ///
   /// Must be a value between 0 and 1, if present.
   final double? actionOverflowThreshold;
+
   /// Overrides default value for [SnackBarAction.backgroundColor].
   ///
   /// If null, [SnackBarAction] falls back to [Colors.transparent].
   final Color? actionBackgroundColor;
 
-  /// Overrides default value for [SnackBarAction.].
+  /// Overrides default value for [SnackBarAction.disabledBackgroundColor].
   ///
   /// If null, [SnackBarAction] falls back to [Colors.transparent].
   final Color? disabledActionBackgroundColor;
+
+  /// Overrides the default value for [SnackBar.dismissDirection].
+  ///
+  /// If null, [SnackBar] will default to [DismissDirection.down].
+  final DismissDirection? dismissDirection;
 
   /// Creates a copy of this object with the given fields replaced with the
   /// new values.
@@ -172,6 +197,7 @@ class SnackBarThemeData with Diagnosticable {
     double? actionOverflowThreshold,
     Color? actionBackgroundColor,
     Color? disabledActionBackgroundColor,
+    DismissDirection? dismissDirection,
   }) {
     return SnackBarThemeData(
       backgroundColor: backgroundColor ?? this.backgroundColor,
@@ -187,13 +213,13 @@ class SnackBarThemeData with Diagnosticable {
       closeIconColor: closeIconColor ?? this.closeIconColor,
       actionOverflowThreshold: actionOverflowThreshold ?? this.actionOverflowThreshold,
       actionBackgroundColor: actionBackgroundColor ?? this.actionBackgroundColor,
-      disabledActionBackgroundColor: disabledActionBackgroundColor ?? this.disabledActionBackgroundColor,
+      disabledActionBackgroundColor:
+          disabledActionBackgroundColor ?? this.disabledActionBackgroundColor,
+      dismissDirection: dismissDirection ?? this.dismissDirection,
     );
   }
 
   /// Linearly interpolate between two SnackBar Themes.
-  ///
-  /// The argument `t` must not be null.
   ///
   /// {@macro dart.ui.shadow.lerp}
   static SnackBarThemeData lerp(SnackBarThemeData? a, SnackBarThemeData? b, double t) {
@@ -203,7 +229,11 @@ class SnackBarThemeData with Diagnosticable {
     return SnackBarThemeData(
       backgroundColor: Color.lerp(a?.backgroundColor, b?.backgroundColor, t),
       actionTextColor: Color.lerp(a?.actionTextColor, b?.actionTextColor, t),
-      disabledActionTextColor: Color.lerp(a?.disabledActionTextColor, b?.disabledActionTextColor, t),
+      disabledActionTextColor: Color.lerp(
+        a?.disabledActionTextColor,
+        b?.disabledActionTextColor,
+        t,
+      ),
       contentTextStyle: TextStyle.lerp(a?.contentTextStyle, b?.contentTextStyle, t),
       elevation: lerpDouble(a?.elevation, b?.elevation, t),
       shape: ShapeBorder.lerp(a?.shape, b?.shape, t),
@@ -211,29 +241,39 @@ class SnackBarThemeData with Diagnosticable {
       width: lerpDouble(a?.width, b?.width, t),
       insetPadding: EdgeInsets.lerp(a?.insetPadding, b?.insetPadding, t),
       closeIconColor: Color.lerp(a?.closeIconColor, b?.closeIconColor, t),
-      actionOverflowThreshold: lerpDouble(a?.actionOverflowThreshold, b?.actionOverflowThreshold, t),
+      actionOverflowThreshold: lerpDouble(
+        a?.actionOverflowThreshold,
+        b?.actionOverflowThreshold,
+        t,
+      ),
       actionBackgroundColor: Color.lerp(a?.actionBackgroundColor, b?.actionBackgroundColor, t),
-      disabledActionBackgroundColor: Color.lerp(a?.disabledActionBackgroundColor, b?.disabledActionBackgroundColor, t),
+      disabledActionBackgroundColor: Color.lerp(
+        a?.disabledActionBackgroundColor,
+        b?.disabledActionBackgroundColor,
+        t,
+      ),
+      dismissDirection: t < 0.5 ? a?.dismissDirection : b?.dismissDirection,
     );
   }
 
   @override
   int get hashCode => Object.hash(
-        backgroundColor,
-        actionTextColor,
-        disabledActionTextColor,
-        contentTextStyle,
-        elevation,
-        shape,
-        behavior,
-        width,
-        insetPadding,
-        showCloseIcon,
-        closeIconColor,
-        actionOverflowThreshold,
-        actionBackgroundColor,
-        disabledActionBackgroundColor
-      );
+    backgroundColor,
+    actionTextColor,
+    disabledActionTextColor,
+    contentTextStyle,
+    elevation,
+    shape,
+    behavior,
+    width,
+    insetPadding,
+    showCloseIcon,
+    closeIconColor,
+    actionOverflowThreshold,
+    actionBackgroundColor,
+    disabledActionBackgroundColor,
+    dismissDirection,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -243,21 +283,22 @@ class SnackBarThemeData with Diagnosticable {
     if (other.runtimeType != runtimeType) {
       return false;
     }
-    return other is SnackBarThemeData
-        && other.backgroundColor == backgroundColor
-        && other.actionTextColor == actionTextColor
-        && other.disabledActionTextColor == disabledActionTextColor
-        && other.contentTextStyle == contentTextStyle
-        && other.elevation == elevation
-        && other.shape == shape
-        && other.behavior == behavior
-        && other.width == width
-        && other.insetPadding == insetPadding
-        && other.showCloseIcon == showCloseIcon
-        && other.closeIconColor == closeIconColor
-        && other.actionOverflowThreshold == actionOverflowThreshold
-        && other.actionBackgroundColor == actionBackgroundColor
-        && other.disabledActionBackgroundColor == disabledActionBackgroundColor;
+    return other is SnackBarThemeData &&
+        other.backgroundColor == backgroundColor &&
+        other.actionTextColor == actionTextColor &&
+        other.disabledActionTextColor == disabledActionTextColor &&
+        other.contentTextStyle == contentTextStyle &&
+        other.elevation == elevation &&
+        other.shape == shape &&
+        other.behavior == behavior &&
+        other.width == width &&
+        other.insetPadding == insetPadding &&
+        other.showCloseIcon == showCloseIcon &&
+        other.closeIconColor == closeIconColor &&
+        other.actionOverflowThreshold == actionOverflowThreshold &&
+        other.actionBackgroundColor == actionBackgroundColor &&
+        other.disabledActionBackgroundColor == disabledActionBackgroundColor &&
+        other.dismissDirection == dismissDirection;
   }
 
   @override
@@ -265,17 +306,40 @@ class SnackBarThemeData with Diagnosticable {
     super.debugFillProperties(properties);
     properties.add(ColorProperty('backgroundColor', backgroundColor, defaultValue: null));
     properties.add(ColorProperty('actionTextColor', actionTextColor, defaultValue: null));
-    properties.add(ColorProperty('disabledActionTextColor', disabledActionTextColor, defaultValue: null));
-    properties.add(DiagnosticsProperty<TextStyle>('contentTextStyle', contentTextStyle, defaultValue: null));
+    properties.add(
+      ColorProperty('disabledActionTextColor', disabledActionTextColor, defaultValue: null),
+    );
+    properties.add(
+      DiagnosticsProperty<TextStyle>('contentTextStyle', contentTextStyle, defaultValue: null),
+    );
     properties.add(DoubleProperty('elevation', elevation, defaultValue: null));
     properties.add(DiagnosticsProperty<ShapeBorder>('shape', shape, defaultValue: null));
     properties.add(DiagnosticsProperty<SnackBarBehavior>('behavior', behavior, defaultValue: null));
     properties.add(DoubleProperty('width', width, defaultValue: null));
-    properties.add(DiagnosticsProperty<EdgeInsets>('insetPadding', insetPadding, defaultValue: null));
+    properties.add(
+      DiagnosticsProperty<EdgeInsets>('insetPadding', insetPadding, defaultValue: null),
+    );
     properties.add(DiagnosticsProperty<bool>('showCloseIcon', showCloseIcon, defaultValue: null));
     properties.add(ColorProperty('closeIconColor', closeIconColor, defaultValue: null));
-    properties.add(DoubleProperty('actionOverflowThreshold', actionOverflowThreshold, defaultValue: null));
-    properties.add(ColorProperty('actionBackgroundColor', actionBackgroundColor, defaultValue: null));
-    properties.add(ColorProperty('disabledActionBackgroundColor', disabledActionBackgroundColor, defaultValue: null));
+    properties.add(
+      DoubleProperty('actionOverflowThreshold', actionOverflowThreshold, defaultValue: null),
+    );
+    properties.add(
+      ColorProperty('actionBackgroundColor', actionBackgroundColor, defaultValue: null),
+    );
+    properties.add(
+      ColorProperty(
+        'disabledActionBackgroundColor',
+        disabledActionBackgroundColor,
+        defaultValue: null,
+      ),
+    );
+    properties.add(
+      DiagnosticsProperty<DismissDirection>(
+        'dismissDirection',
+        dismissDirection,
+        defaultValue: null,
+      ),
+    );
   }
 }

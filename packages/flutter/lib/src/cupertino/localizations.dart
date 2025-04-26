@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'bottom_tab_bar.dart';
+/// @docImport 'date_picker.dart';
+/// @docImport 'search_field.dart';
+library;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -17,14 +22,17 @@ enum DatePickerDateTimeOrder {
   ///
   /// Example: Fri Aug 31 | 02 | 08 | PM.
   date_time_dayPeriod,
+
   /// Order of the columns, from left to right: date, am/pm, hour, minute.
   ///
   /// Example: Fri Aug 31 | PM | 02 | 08.
   date_dayPeriod_time,
+
   /// Order of the columns, from left to right: hour, minute, am/pm, date.
   ///
   /// Example: 02 | 08 | PM | Fri Aug 31.
   time_dayPeriod_date,
+
   /// Order of the columns, from left to right: am/pm, hour, minute, date.
   ///
   /// Example: PM | 02 | 08 | Fri Aug 31.
@@ -37,14 +45,17 @@ enum DatePickerDateOrder {
   ///
   /// Example: 12 | March | 1996.
   dmy,
+
   /// Order of the columns, from left to right: month, day, year.
   ///
   /// Example: March | 12 | 1996.
   mdy,
+
   /// Order of the columns, from left to right: year, month, day.
   ///
   /// Example: 1996 | March | 12.
   ymd,
+
   /// Order of the columns, from left to right: year, day, month.
   ///
   /// Example: 1996 | 12 | March.
@@ -57,7 +68,6 @@ enum DatePickerDateOrder {
 ///
 ///  * [DefaultCupertinoLocalizations], the default, English-only, implementation
 ///    of this interface.
-// TODO(xster): Supply non-english strings.
 abstract class CupertinoLocalizations {
   /// Year that is shown in [CupertinoDatePicker] spinner corresponding to the
   /// given year index.
@@ -76,8 +86,24 @@ abstract class CupertinoLocalizations {
   ///
   ///  - US English: January
   ///  - Korean: 1월
+  ///  - Russian: января
   // The global version uses date symbols data from the intl package.
   String datePickerMonth(int monthIndex);
+
+  /// Month that is shown in [CupertinoDatePicker] spinner corresponding to
+  /// the given month index in [CupertinoDatePickerMode.monthYear] mode.
+  ///
+  /// This is distinct from [datePickerMonth] because in some languages, like Russian,
+  /// the name of a month takes a different form depending
+  /// on whether it is preceded by a day or whether it stands alone.
+  ///
+  /// Examples: datePickerMonth(1) in:
+  ///
+  ///  - US English: January
+  ///  - Korean: 1월
+  ///  - Russian: Январь
+  // The global version uses date symbols data from the intl package.
+  String datePickerStandaloneMonth(int monthIndex);
 
   /// Day of month that is shown in [CupertinoDatePicker] spinner corresponding
   /// to the given day index.
@@ -236,6 +262,10 @@ abstract class CupertinoLocalizations {
   // The global version uses the translated string from the arb file.
   String get pasteButtonLabel;
 
+  /// The term used for clearing a field.
+  // The global version uses the translated string from the arb file.
+  String get clearButtonLabel;
+
   /// Label that appears in the Cupertino toolbar when the spell checker
   /// couldn't find any replacements for the current word.
   // The global version uses the translated string from the arb file.
@@ -244,6 +274,18 @@ abstract class CupertinoLocalizations {
   /// The term used for selecting everything.
   // The global version uses the translated string from the arb file.
   String get selectAllButtonLabel;
+
+  /// The term used for looking up a selection.
+  // The global version uses the translated string from the arb file.
+  String get lookUpButtonLabel;
+
+  /// The term used for launching a web search on a selection.
+  // The global version uses the translated string from the arb file.
+  String get searchWebButtonLabel;
+
+  /// The term used for launching a web search on a selection.
+  // The global version uses the translated string from the arb file.
+  String get shareButtonLabel;
 
   /// The default placeholder used in [CupertinoSearchTextField].
   // The global version uses the translated string from the arb file.
@@ -255,6 +297,10 @@ abstract class CupertinoLocalizations {
   /// A modal barrier can for example be found behind an alert or popup to block
   /// user interaction with elements behind it.
   String get modalBarrierDismissLabel;
+
+  /// Label read out by accessibility tools (VoiceOver) for a context menu to
+  /// indicate that a tap outside dismisses the context menu.
+  String get menuDismissLabel;
 
   /// The `CupertinoLocalizations` from the closest [Localizations] instance
   /// that encloses the given context.
@@ -303,7 +349,7 @@ class DefaultCupertinoLocalizations implements CupertinoLocalizations {
   const DefaultCupertinoLocalizations();
 
   /// Short version of days of week.
-  static const List<String> shortWeekdays = <String>[
+  static const List<String> _shortWeekdays = <String>[
     'Mon',
     'Tue',
     'Wed',
@@ -343,8 +389,6 @@ class DefaultCupertinoLocalizations implements CupertinoLocalizations {
     'December',
   ];
 
-
-
   @override
   String datePickerYear(int yearIndex) => yearIndex.toString();
 
@@ -352,9 +396,12 @@ class DefaultCupertinoLocalizations implements CupertinoLocalizations {
   String datePickerMonth(int monthIndex) => _months[monthIndex - 1];
 
   @override
+  String datePickerStandaloneMonth(int monthIndex) => _months[monthIndex - 1];
+
+  @override
   String datePickerDayOfMonth(int dayIndex, [int? weekDay]) {
     if (weekDay != null) {
-      return ' ${shortWeekdays[weekDay - DateTime.monday]} $dayIndex ';
+      return ' ${_shortWeekdays[weekDay - DateTime.monday]} $dayIndex ';
     }
 
     return dayIndex.toString();
@@ -379,16 +426,17 @@ class DefaultCupertinoLocalizations implements CupertinoLocalizations {
 
   @override
   String datePickerMediumDate(DateTime date) {
-    return '${shortWeekdays[date.weekday - DateTime.monday]} '
-      '${_shortMonths[date.month - DateTime.january]} '
-      '${date.day.toString().padRight(2)}';
+    return '${_shortWeekdays[date.weekday - DateTime.monday]} '
+        '${_shortMonths[date.month - DateTime.january]} '
+        '${date.day.toString().padRight(2)}';
   }
 
   @override
   DatePickerDateOrder get datePickerDateOrder => DatePickerDateOrder.mdy;
 
   @override
-  DatePickerDateTimeOrder get datePickerDateTimeOrder => DatePickerDateTimeOrder.date_time_dayPeriod;
+  DatePickerDateTimeOrder get datePickerDateTimeOrder =>
+      DatePickerDateTimeOrder.date_time_dayPeriod;
 
   @override
   String get anteMeridiemAbbreviation => 'AM';
@@ -446,16 +494,31 @@ class DefaultCupertinoLocalizations implements CupertinoLocalizations {
   String get pasteButtonLabel => 'Paste';
 
   @override
+  String get clearButtonLabel => 'Clear';
+
+  @override
   String get noSpellCheckReplacementsLabel => 'No Replacements Found';
 
   @override
   String get selectAllButtonLabel => 'Select All';
 
   @override
+  String get lookUpButtonLabel => 'Look Up';
+
+  @override
+  String get searchWebButtonLabel => 'Search Web';
+
+  @override
+  String get shareButtonLabel => 'Share...';
+
+  @override
   String get searchTextFieldPlaceholderLabel => 'Search';
 
   @override
   String get modalBarrierDismissLabel => 'Dismiss';
+
+  @override
+  String get menuDismissLabel => 'Dismiss menu';
 
   /// Creates an object that provides US English resource values for the
   /// cupertino library widgets.
@@ -469,5 +532,6 @@ class DefaultCupertinoLocalizations implements CupertinoLocalizations {
 
   /// A [LocalizationsDelegate] that uses [DefaultCupertinoLocalizations.load]
   /// to create an instance of this class.
-  static const LocalizationsDelegate<CupertinoLocalizations> delegate = _CupertinoLocalizationsDelegate();
+  static const LocalizationsDelegate<CupertinoLocalizations> delegate =
+      _CupertinoLocalizationsDelegate();
 }

@@ -2,6 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+///
+/// @docImport 'matchers.dart';
+library;
+
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:ui';
@@ -16,9 +21,7 @@ import 'widget_tester.dart';
 /// The result of evaluating a semantics node by a [AccessibilityGuideline].
 class Evaluation {
   /// Create a passing evaluation.
-  const Evaluation.pass()
-      : passed = true,
-        reason = null;
+  const Evaluation.pass() : passed = true, reason = null;
 
   /// Create a failing evaluation, with an optional [reason] explaining the
   /// result.
@@ -50,12 +53,12 @@ class Evaluation {
     if (other.reason != null && other.reason!.isNotEmpty) {
       buffer.write(other.reason);
     }
-    return Evaluation._(
-      passed && other.passed,
-      buffer.isEmpty ? null : buffer.toString(),
-    );
+    return Evaluation._(passed && other.passed, buffer.isEmpty ? null : buffer.toString());
   }
 }
+
+// Examples can assume:
+// typedef HomePage = Placeholder;
 
 /// An accessibility guideline describes a recommendation an application should
 /// meet to be considered accessible.
@@ -131,12 +134,8 @@ class MinimumTapTargetGuideline extends AccessibilityGuideline {
   @override
   FutureOr<Evaluation> evaluate(WidgetTester tester) {
     Evaluation result = const Evaluation.pass();
-    for (final FlutterView view in tester.platformDispatcher.views) {
-      result += _traverse(
-        view,
-        // TODO(pdblasi-google): Get the specific semantics root for this view when available
-        tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!,
-      );
+    for (final RenderView view in tester.binding.renderViews) {
+      result += _traverse(view.flutterView, view.owner!.semanticsOwner!.rootSemanticsNode!);
     }
 
     return result;
@@ -239,10 +238,8 @@ class LabeledTapTargetGuideline extends AccessibilityGuideline {
   FutureOr<Evaluation> evaluate(WidgetTester tester) {
     Evaluation result = const Evaluation.pass();
 
-    // TODO(pdblasi-google): Use view to retrieve the appropriate root semantics node when available.
-    // ignore: unused_local_variable
-    for (final FlutterView view in tester.platformDispatcher.views) {
-      result += _traverse(tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!);
+    for (final RenderView view in tester.binding.renderViews) {
+      result += _traverse(view.owner!.semanticsOwner!.rootSemanticsNode!);
     }
 
     return result;
@@ -262,8 +259,7 @@ class LabeledTapTargetGuideline extends AccessibilityGuideline {
     }
     final SemanticsData data = node.getSemanticsData();
     // Skip node if it has no actions, or is marked as hidden.
-    if (!data.hasAction(ui.SemanticsAction.longPress) &&
-        !data.hasAction(ui.SemanticsAction.tap)) {
+    if (!data.hasAction(ui.SemanticsAction.longPress) && !data.hasAction(ui.SemanticsAction.tap)) {
       return result;
     }
     if ((data.label.isEmpty) && (data.tooltip.isEmpty)) {
@@ -318,24 +314,22 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
   @override
   Future<Evaluation> evaluate(WidgetTester tester) async {
     Evaluation result = const Evaluation.pass();
-    for (final FlutterView view in tester.platformDispatcher.views) {
-      // TODO(pdblasi): This renderView will need to be retrieved from view when available.
-      final RenderView renderView = tester.binding.renderView;
+    for (final RenderView renderView in tester.binding.renderViews) {
       final OffsetLayer layer = renderView.debugLayer! as OffsetLayer;
       final SemanticsNode root = renderView.owner!.semanticsOwner!.rootSemanticsNode!;
 
       late ui.Image image;
-      final ByteData? byteData = await tester.binding.runAsync<ByteData?>(
-        () async {
-          // Needs to be the same pixel ratio otherwise our dimensions won't match
-          // the last transform layer.
-          final double ratio = 1 / view.devicePixelRatio;
-          image = await layer.toImage(renderView.paintBounds, pixelRatio: ratio);
-          return image.toByteData();
-        },
-      );
+      final ByteData? byteData = await tester.binding.runAsync<ByteData?>(() async {
+        // Needs to be the same pixel ratio otherwise our dimensions won't match
+        // the last transform layer.
+        final double ratio = 1 / renderView.flutterView.devicePixelRatio;
+        image = await layer.toImage(renderView.paintBounds, pixelRatio: ratio);
+        final ByteData? data = await image.toByteData();
+        image.dispose();
+        return data;
+      });
 
-      result += await _evaluateNode(root, tester, image, byteData!, view);
+      result += await _evaluateNode(root, tester, image, byteData!, renderView);
     }
 
     return result;
@@ -346,13 +340,13 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
     WidgetTester tester,
     ui.Image image,
     ByteData byteData,
-    FlutterView view,
+    RenderView renderView,
   ) async {
     Evaluation result = const Evaluation.pass();
 
     // Skip disabled nodes, as they not required to pass contrast check.
-    final bool isDisabled = node.hasFlag(ui.SemanticsFlag.hasEnabledState) &&
-        !node.hasFlag(ui.SemanticsFlag.isEnabled);
+    final bool isDisabled =
+        node.hasFlag(ui.SemanticsFlag.hasEnabledState) && !node.hasFlag(ui.SemanticsFlag.isEnabled);
 
     if (node.isInvisible ||
         node.isMergedIntoParent ||
@@ -368,7 +362,7 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
       return true;
     });
     for (final SemanticsNode child in children) {
-      result += await _evaluateNode(child, tester, image, byteData, view);
+      result += await _evaluateNode(child, tester, image, byteData, renderView);
     }
     if (shouldSkipNode(data)) {
       return result;
@@ -376,7 +370,7 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
     final String text = data.label.isEmpty ? data.value : data.label;
     final Iterable<Element> elements = find.text(text).hitTestable().evaluate();
     for (final Element element in elements) {
-      result += await _evaluateElement(node, element, tester, image, byteData, view);
+      result += await _evaluateElement(node, element, tester, image, byteData, renderView);
     }
     return result;
   }
@@ -387,7 +381,7 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
     WidgetTester tester,
     ui.Image image,
     ByteData byteData,
-    FlutterView view,
+    RenderView renderView,
   ) async {
     // Look up inherited text properties to determine text size and weight.
     late bool isBold;
@@ -402,13 +396,16 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
     }
 
     final Matrix4 globalTransform = renderBox.getTransformTo(null);
-    paintBoundsWithOffset = MatrixUtils.transformRect(globalTransform, renderBox.paintBounds.inflate(4.0));
+    paintBoundsWithOffset = MatrixUtils.transformRect(
+      globalTransform,
+      renderBox.paintBounds.inflate(4.0),
+    );
 
     // The semantics node transform will include root view transform, which is
     // not included in renderBox.getTransformTo(null). Manually multiply the
     // root transform to the global transform.
     final Matrix4 rootTransform = Matrix4.identity();
-    tester.binding.renderView.applyPaintTransform(tester.binding.renderView.child!, rootTransform);
+    renderView.applyPaintTransform(renderView.child!, rootTransform);
     rootTransform.multiply(globalTransform);
     screenBounds = MatrixUtils.transformRect(rootTransform, renderBox.paintBounds);
     Rect nodeBounds = node.rect;
@@ -431,9 +428,8 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
     final DefaultTextStyle defaultTextStyle = DefaultTextStyle.of(element);
     if (widget is Text) {
       final TextStyle? style = widget.style;
-      final TextStyle effectiveTextStyle = style == null || style.inherit
-          ? defaultTextStyle.style.merge(widget.style)
-          : style;
+      final TextStyle effectiveTextStyle =
+          style == null || style.inherit ? defaultTextStyle.style.merge(widget.style) : style;
       isBold = effectiveTextStyle.fontWeight == FontWeight.bold;
       fontSize = effectiveTextStyle.fontSize;
     } else if (widget is EditableText) {
@@ -443,11 +439,16 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
       throw StateError('Unexpected widget type: ${widget.runtimeType}');
     }
 
-    if (isNodeOffScreen(paintBoundsWithOffset, view)) {
+    if (isNodeOffScreen(paintBoundsWithOffset, renderView.flutterView)) {
       return const Evaluation.pass();
     }
 
-    final Map<Color, int> colorHistogram = _colorsWithinRect(byteData, paintBoundsWithOffset, image.width, image.height);
+    final Map<Color, int> colorHistogram = _colorsWithinRect(
+      byteData,
+      paintBoundsWithOffset,
+      image.width,
+      image.height,
+    );
 
     // Node was too far off screen.
     if (colorHistogram.isEmpty) {
@@ -487,9 +488,9 @@ class MinimumTextContrastGuideline extends AccessibilityGuideline {
   bool isNodeOffScreen(Rect paintBounds, ui.FlutterView window) {
     final Size windowPhysicalSize = window.physicalSize * window.devicePixelRatio;
     return paintBounds.top < -50.0 ||
-           paintBounds.left < -50.0 ||
-           paintBounds.bottom > windowPhysicalSize.height + 50.0 ||
-           paintBounds.right > windowPhysicalSize.width + 50.0;
+        paintBounds.left < -50.0 ||
+        paintBounds.bottom > windowPhysicalSize.height + 50.0 ||
+        paintBounds.right > windowPhysicalSize.width + 50.0;
   }
 
   /// Returns the required contrast ratio for the [fontSize] and [bold] setting.
@@ -562,9 +563,9 @@ class CustomMinimumContrastGuideline extends AccessibilityGuideline {
     Evaluation result = const Evaluation.pass();
     for (final Element element in elements) {
       final FlutterView view = tester.viewOf(find.byElementPredicate((Element e) => e == element));
-
-      // TODO(pdblasi): Obtain this renderView from view when possible.
-      final RenderView renderView = tester.binding.renderView;
+      final RenderView renderView = tester.binding.renderViews.firstWhere(
+        (RenderView r) => r.flutterView == view,
+      );
       final OffsetLayer layer = renderView.debugLayer! as OffsetLayer;
 
       late final ui.Image image;
@@ -572,12 +573,13 @@ class CustomMinimumContrastGuideline extends AccessibilityGuideline {
 
       // Obtain a previously rendered image or render one for a new view.
       await tester.binding.runAsync(() async {
-        image = images[view] ??= await layer.toImage(
-          renderView.paintBounds,
-          // Needs to be the same pixel ratio otherwise our dimensions
-          // won't match the last transform layer.
-          pixelRatio: 1 / view.devicePixelRatio,
-        );
+        image =
+            images[view] ??= await layer.toImage(
+              renderView.paintBounds,
+              // Needs to be the same pixel ratio otherwise our dimensions
+              // won't match the last transform layer.
+              pixelRatio: 1 / view.devicePixelRatio,
+            );
         byteData = byteDatas[view] ??= (await image.toByteData())!;
       });
 
@@ -600,7 +602,12 @@ class CustomMinimumContrastGuideline extends AccessibilityGuideline {
       renderObject.localToGlobal(inflatedPaintBounds.bottomRight),
     );
 
-    final Map<Color, int> colorHistogram = _colorsWithinRect(byteData, paintBounds, image.width, image.height);
+    final Map<Color, int> colorHistogram = _colorsWithinRect(
+      byteData,
+      paintBounds,
+      image.width,
+      image.height,
+    );
 
     if (colorHistogram.isEmpty) {
       return const Evaluation.pass();
@@ -662,10 +669,7 @@ class _ContrastReport {
     }
 
     // If there is only single color, it is reported as both dark and light.
-    return _ContrastReport._(
-      lightColor?.key ?? darkColor!.key,
-      darkColor?.key ?? lightColor!.key,
-    );
+    return _ContrastReport._(lightColor?.key ?? darkColor!.key, darkColor?.key ?? lightColor!.key);
   }
 
   const _ContrastReport._(this.lightColor, this.darkColor);
@@ -681,7 +685,8 @@ class _ContrastReport {
   /// Computes the contrast ratio as defined by the WCAG.
   ///
   /// Source: https://www.w3.org/TR/UNDERSTANDING-WCAG20/visual-audio-contrast-contrast.html
-  double contrastRatio() => (lightColor.computeLuminance() + 0.05) / (darkColor.computeLuminance() + 0.05);
+  double contrastRatio() =>
+      (lightColor.computeLuminance() + 0.05) / (darkColor.computeLuminance() + 0.05);
 }
 
 /// Gives the color histogram of all pixels inside a given rectangle on the
@@ -691,13 +696,10 @@ class _ContrastReport {
 /// in row-first order, where each pixel is given in 4 bytes in RGBA order,
 /// and [paintBounds], the rectangle, and [width] and [height],
 //  the dimensions of the [ByteData] returns color histogram.
-Map<Color, int> _colorsWithinRect(
-    ByteData data,
-    Rect paintBounds,
-    int width,
-    int height,
-) {
-  final Rect truePaintBounds = paintBounds.intersect(Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble()));
+Map<Color, int> _colorsWithinRect(ByteData data, Rect paintBounds, int width, int height) {
+  final Rect truePaintBounds = paintBounds.intersect(
+    Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble()),
+  );
 
   final int leftX = truePaintBounds.left.floor();
   final int rightX = truePaintBounds.right.ceil();
@@ -713,16 +715,12 @@ Map<Color, int> _colorsWithinRect(
 
   for (int x = leftX; x < rightX; x++) {
     for (int y = topY; y < bottomY; y++) {
-      rgbaToCount.update(
-        getPixel(data, x, y),
-        (int count) => count + 1,
-        ifAbsent: () => 1,
-      );
+      rgbaToCount.update(getPixel(data, x, y), (int count) => count + 1, ifAbsent: () => 1);
     }
   }
 
   return rgbaToCount.map<Color, int>((int rgba, int count) {
-    final int argb =  (rgba << 24) | (rgba >> 8) & 0xFFFFFFFF;
+    final int argb = (rgba << 24) | (rgba >> 8) & 0xFFFFFFFF;
     return MapEntry<Color, int>(Color(argb), count);
   });
 }
@@ -754,7 +752,8 @@ const AccessibilityGuideline androidTapTargetGuideline = MinimumTapTargetGuideli
 ///    minimum size of 48 by 48 pixels.
 const AccessibilityGuideline iOSTapTargetGuideline = MinimumTapTargetGuideline(
   size: Size(44.0, 44.0),
-  link: 'https://developer.apple.com/design/human-interface-guidelines/ios/visual-design/adaptivity-and-layout/',
+  link:
+      'https://developer.apple.com/design/human-interface-guidelines/ios/visual-design/adaptivity-and-layout/',
 );
 
 /// A guideline which requires text contrast to meet minimum values.

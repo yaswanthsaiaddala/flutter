@@ -5,8 +5,6 @@
 import 'base/context.dart';
 
 /// The current [FeatureFlags] implementation.
-///
-/// If not injected, a default implementation is provided.
 FeatureFlags get featureFlags => context.get<FeatureFlags>()!;
 
 /// The interface used to determine if a particular [Feature] is enabled.
@@ -44,11 +42,20 @@ abstract class FeatureFlags {
   /// Whether custom devices are enabled.
   bool get areCustomDevicesEnabled => false;
 
-  /// Whether fast single widget reloads are enabled.
-  bool get isSingleWidgetReloadEnabled => false;
+  /// Whether animations are used in the command line interface.
+  bool get isCliAnimationEnabled => true;
 
-  /// Whether WebAssembly compilation for Flutter Web is enabled.
-  bool get isFlutterWebWasmEnabled => false;
+  /// Whether native assets compilation and bundling is enabled.
+  bool get isNativeAssetsEnabled => false;
+
+  /// Whether native assets compilation and bundling is enabled.
+  bool get isPreviewDeviceEnabled => true;
+
+  /// Whether Swift Package Manager dependency management is enabled.
+  bool get isSwiftPackageManagerEnabled => false;
+
+  /// Whether explicit package dependency management is enabled.
+  bool get isExplicitPackageDependenciesEnabled => false;
 
   /// Whether a particular feature is enabled for the current channel.
   ///
@@ -62,18 +69,22 @@ const List<Feature> allFeatures = <Feature>[
   flutterLinuxDesktopFeature,
   flutterMacOSDesktopFeature,
   flutterWindowsDesktopFeature,
-  singleWidgetReload,
   flutterAndroidFeature,
   flutterIOSFeature,
   flutterFuchsiaFeature,
   flutterCustomDevicesFeature,
-  flutterWebWasm,
+  cliAnimation,
+  nativeAssets,
+  previewDevice,
+  swiftPackageManager,
+  explicitPackageDependencies,
 ];
 
 /// All current Flutter feature flags that can be configured.
 ///
 /// [Feature.configSetting] is not `null`.
-Iterable<Feature> get allConfigurableFeatures => allFeatures.where((Feature feature) => feature.configSetting != null);
+Iterable<Feature> get allConfigurableFeatures =>
+    allFeatures.where((Feature feature) => feature.configSetting != null);
 
 /// The [Feature] for flutter web.
 const Feature flutterWebFeature = Feature.fullyEnabled(
@@ -120,48 +131,69 @@ const Feature flutterFuchsiaFeature = Feature(
   name: 'Flutter for Fuchsia',
   configSetting: 'enable-fuchsia',
   environmentOverride: 'FLUTTER_FUCHSIA',
-  master: FeatureChannelSetting(
-    available: true,
-  ),
+  master: FeatureChannelSetting(available: true),
 );
 
 const Feature flutterCustomDevicesFeature = Feature(
-  name: 'Early support for custom device types',
+  name: 'early support for custom device types',
   configSetting: 'enable-custom-devices',
   environmentOverride: 'FLUTTER_CUSTOM_DEVICES',
-  master: FeatureChannelSetting(
-    available: true,
-  ),
-  beta: FeatureChannelSetting(
-    available: true,
-  ),
-  stable: FeatureChannelSetting(
-    available: true,
-  ),
+  master: FeatureChannelSetting(available: true),
+  beta: FeatureChannelSetting(available: true),
+  stable: FeatureChannelSetting(available: true),
 );
 
-/// The fast hot reload feature for https://github.com/flutter/flutter/issues/61407.
-const Feature singleWidgetReload = Feature(
-  name: 'Hot reload optimization for changes to class body of a single widget',
-  configSetting: 'single-widget-reload-optimization',
-  environmentOverride: 'FLUTTER_SINGLE_WIDGET_RELOAD',
-  master: FeatureChannelSetting(
-    available: true,
-    enabledByDefault: true,
-  ),
-  beta: FeatureChannelSetting(
-    available: true,
-  ),
+/// The [Feature] for CLI animations.
+///
+/// The TERM environment variable set to "dumb" turns this off.
+const Feature cliAnimation = Feature.fullyEnabled(
+  name: 'animations in the command line interface',
+  configSetting: 'cli-animations',
 );
 
-/// Enabling WebAssembly compilation from `flutter build web`
-const Feature flutterWebWasm = Feature(
-  name: 'WebAssembly compilation from flutter build web',
-  environmentOverride: 'FLUTTER_WEB_WASM',
-  master: FeatureChannelSetting(
-    available: true,
-    enabledByDefault: true,
-  ),
+/// Enable native assets compilation and bundling.
+const Feature nativeAssets = Feature(
+  name: 'native assets compilation and bundling',
+  configSetting: 'enable-native-assets',
+  environmentOverride: 'FLUTTER_NATIVE_ASSETS',
+  master: FeatureChannelSetting(available: true),
+);
+
+/// Enable Flutter preview prebuilt device.
+const Feature previewDevice = Feature(
+  name: 'Flutter preview prebuilt device',
+  configSetting: 'enable-flutter-preview',
+  environmentOverride: 'FLUTTER_PREVIEW_DEVICE',
+  master: FeatureChannelSetting(available: true),
+  beta: FeatureChannelSetting(available: true),
+);
+
+/// Enable Swift Package Manager as a darwin dependency manager.
+const Feature swiftPackageManager = Feature(
+  name: 'support for Swift Package Manager for iOS and macOS',
+  configSetting: 'enable-swift-package-manager',
+  environmentOverride: 'FLUTTER_SWIFT_PACKAGE_MANAGER',
+  master: FeatureChannelSetting(available: true),
+  beta: FeatureChannelSetting(available: true),
+  stable: FeatureChannelSetting(available: true),
+);
+
+/// Enable explicit resolution and generation of package dependencies.
+const Feature explicitPackageDependencies = Feature(
+  name: 'support for dev_dependency plugins',
+  configSetting: 'explicit-package-dependencies',
+  extraHelpText:
+      'Plugins that are resolved as result of being in "dev_dependencies" of a '
+      'package are not included in release builds of an app. By enabling this '
+      'feature, the synthetic "package:flutter_gen" can no longer be generated '
+      'and the legacy ".flutter-plugins" tool artifact is no longer generated.\n'
+      '\n'
+      'See also:\n'
+      '* https://flutter.dev/to/flutter-plugins-configuration.\n'
+      '* https://flutter.dev/to/flutter-gen-deprecation.',
+  master: FeatureChannelSetting(available: true),
+  beta: FeatureChannelSetting(available: true),
+  stable: FeatureChannelSetting(available: true),
 );
 
 /// A [Feature] is a process for conditionally enabling tool features.
@@ -181,27 +213,18 @@ class Feature {
     this.extraHelpText,
     this.master = const FeatureChannelSetting(),
     this.beta = const FeatureChannelSetting(),
-    this.stable = const FeatureChannelSetting()
+    this.stable = const FeatureChannelSetting(),
   });
 
   /// Creates a [Feature] that is fully enabled across channels.
-  const Feature.fullyEnabled(
-      {required this.name,
-      this.environmentOverride,
-      this.configSetting,
-      this.extraHelpText})
-      : master = const FeatureChannelSetting(
-          available: true,
-          enabledByDefault: true,
-        ),
-        beta = const FeatureChannelSetting(
-          available: true,
-          enabledByDefault: true,
-        ),
-        stable = const FeatureChannelSetting(
-          available: true,
-          enabledByDefault: true,
-        );
+  const Feature.fullyEnabled({
+    required this.name,
+    this.environmentOverride,
+    this.configSetting,
+    this.extraHelpText,
+  }) : master = const FeatureChannelSetting(available: true, enabledByDefault: true),
+       beta = const FeatureChannelSetting(available: true, enabledByDefault: true),
+       stable = const FeatureChannelSetting(available: true, enabledByDefault: true);
 
   /// The user visible name for this feature.
   final String name;
@@ -247,9 +270,9 @@ class Feature {
     ];
     // Add channel info for settings only on some channels.
     if (channels.length == 1) {
-      buffer.write('\nThis setting applies to only the ${channels.single} channel.');
+      buffer.write('\nThis setting applies only to the ${channels.single} channel.');
     } else if (channels.length == 2) {
-      buffer.write('\nThis setting applies to only the ${channels.join(' and ')} channels.');
+      buffer.write('\nThis setting applies only to the ${channels.join(' and ')} channels.');
     }
     if (extraHelpText != null) {
       buffer.write(' $extraHelpText');
@@ -259,24 +282,17 @@ class Feature {
 
   /// Retrieve the correct setting for the provided `channel`.
   FeatureChannelSetting getSettingForChannel(String channel) {
-    switch (channel) {
-      case 'stable':
-        return stable;
-      case 'beta':
-        return beta;
-      case 'master':
-      default:
-        return master;
-    }
+    return switch (channel) {
+      'stable' => stable,
+      'beta' => beta,
+      'master' || _ => master,
+    };
   }
 }
 
 /// A description of the conditions to enable a feature for a particular channel.
 class FeatureChannelSetting {
-  const FeatureChannelSetting({
-    this.available = false,
-    this.enabledByDefault = false,
-  });
+  const FeatureChannelSetting({this.available = false, this.enabledByDefault = false});
 
   /// Whether the feature is available on this channel.
   ///

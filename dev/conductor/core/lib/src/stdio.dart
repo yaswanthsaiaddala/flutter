@@ -66,42 +66,59 @@ abstract class Stdio {
 
 /// A logger that will print out trace messages.
 class VerboseStdio extends Stdio {
-  VerboseStdio({
-    required this.stdout,
-    required this.stderr,
-    required this.stdin,
-  });
+  VerboseStdio({required this.stdout, required this.stderr, required this.stdin, this.filter});
 
-  factory VerboseStdio.local() => VerboseStdio(
-        stdout: io.stdout,
-        stderr: io.stderr,
-        stdin: io.stdin,
-      );
+  factory VerboseStdio.local() =>
+      VerboseStdio(stdout: io.stdout, stderr: io.stderr, stdin: io.stdin);
 
   final io.Stdout stdout;
   final io.Stdout stderr;
   final io.Stdin stdin;
 
+  /// If provided, all messages will be passed through this function before being logged.
+  final String Function(String)? filter;
+
   @override
   void printError(String message) {
+    if (filter != null) {
+      message = filter!(message);
+    }
     super.printError(message);
     stderr.writeln(message);
   }
 
   @override
+  void printWarning(String message) {
+    if (filter != null) {
+      message = filter!(message);
+    }
+    super.printWarning(message);
+    stderr.writeln(message);
+  }
+
+  @override
   void printStatus(String message) {
+    if (filter != null) {
+      message = filter!(message);
+    }
     super.printStatus(message);
     stdout.writeln(message);
   }
 
   @override
   void printTrace(String message) {
+    if (filter != null) {
+      message = filter!(message);
+    }
     super.printTrace(message);
     stdout.writeln(message);
   }
 
   @override
   void write(String message) {
+    if (filter != null) {
+      message = filter!(message);
+    }
     super.write(message);
     stdout.write(message);
   }

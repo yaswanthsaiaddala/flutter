@@ -30,25 +30,20 @@ class DataTableExample extends StatefulWidget {
 }
 
 class _DataTableExampleState extends State<DataTableExample> {
-  static const int numItems = 10;
+  static const int numItems = 20;
   List<bool> selected = List<bool>.generate(numItems, (int index) => false);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
+    return SingleChildScrollView(
       child: DataTable(
-        columns: const <DataColumn>[
-          DataColumn(
-            label: Text('Number'),
-          ),
-        ],
+        columns: const <DataColumn>[DataColumn(label: Text('Number'))],
         rows: List<DataRow>.generate(
           numItems,
           (int index) => DataRow(
-            color: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+            color: WidgetStateProperty.resolveWith<Color?>((Set<WidgetState> states) {
               // All rows will have the same selected color.
-              if (states.contains(MaterialState.selected)) {
+              if (states.contains(WidgetState.selected)) {
                 return Theme.of(context).colorScheme.primary.withOpacity(0.08);
               }
               // Even rows will have a grey color.

@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+/// @docImport 'package:flutter/material.dart';
+library;
+
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show clampDouble;
@@ -35,8 +38,6 @@ import 'basic_types.dart';
 /// container.
 ///
 /// Used by [Tooltip] to position a tooltip relative to its parent.
-///
-/// The arguments must not be null.
 Offset positionDependentBox({
   required Size size,
   required Size childSize,
@@ -57,10 +58,11 @@ Offset positionDependentBox({
   }
   // HORIZONTAL DIRECTION
   final double flexibleSpace = size.width - childSize.width;
-  final double x = flexibleSpace <= 2 * margin
-    // If there's not enough horizontal space for margin + child, center the
-    // child.
-    ? flexibleSpace / 2.0
-    : clampDouble(target.dx - childSize.width / 2, margin, flexibleSpace - margin);
+  final double x =
+      flexibleSpace <= 2 * margin
+          // If there's not enough horizontal space for margin + child, center the
+          // child.
+          ? flexibleSpace / 2.0
+          : clampDouble(target.dx - childSize.width / 2, margin, flexibleSpace - margin);
   return Offset(x, y);
 }
